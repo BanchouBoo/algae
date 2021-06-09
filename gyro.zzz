@@ -1,0 +1,15 @@
+pkgs:
+  sodachi:
+    version: 0.0.0
+    description: "Zig math library focused on game development"
+    license: Unlicense
+    source_url: "https://github.com/BanchouBoo/sodachi"
+    tags:
+      math
+      gamedev
+
+    root: src/lib.zig
+    files:
+      README.md
+      LICENSE
+      src/*.zig
