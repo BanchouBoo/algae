@@ -1,4 +1,4 @@
-# Sodachi
+# Algae
 Math library with a focus on game development, currently primarily focused on linear algebra but with plans to eventually include other things useful for game dev as I encounter needs for them such as fast RNG implementations, noise, 1D tranformations, etc.
 
 Inspired by [zlm](https://github.com/ziglibs/zlm).
@@ -16,7 +16,7 @@ Current types available:
 Linear algebra is imported with a numeric type and has config options, example with default config options:
 
 ```zig
-sodachi.lin_alg.WithType(f32, .{
+algae.lin_alg.WithType(f32, .{
     .use_degrees = true,
     .integer_division_behavior = .truncate,
     .auto_normalize_quaternions = true,

@@ -1,9 +1,9 @@
 pkgs:
-  sodachi:
+  algae:
     version: 0.0.0
     description: "Zig math library focused on game development"
     license: Unlicense
-    source_url: "https://github.com/BanchouBoo/sodachi"
+    source_url: "https://github.com/BanchouBoo/algae"
     tags:
       math
       gamedev
