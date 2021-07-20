@@ -13,22 +13,24 @@ pub const LinearAlgebraConfig = struct {
     } = .truncate,
     /// automatically ensure quaternions are normalized for slerp functions and vector rotation
     auto_normalize_quaternions: bool = true,
+    /// ensure types have a guaranteed memory layout
+    extern_types: bool = true,
 };
 
 pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) type {
-    comptime const number_typeinfo = @typeInfo(Number);
+    const number_typeinfo = @typeInfo(Number);
     // zig fmt: off
-    comptime const number_is_signed = if (number_typeinfo == .Int)
+    const number_is_signed = if (number_typeinfo == .Int)
                                           number_typeinfo.Int.signedness == .signed
                                       else if (number_typeinfo == .Float)
                                           true
                                       else
                                           @compileError("Number type must be an integer or float!");
     // zig fmt: on
-    comptime const number_is_float = number_typeinfo == .Float;
-    comptime const epsilon = if (number_is_float) std.math.epsilon(Number) else 0;
+    const number_is_float = number_typeinfo == .Float;
+    const epsilon = if (number_is_float) std.math.epsilon(Number) else 0;
 
-    comptime const divide = struct {
+    const divide = struct {
         pub fn execute(a: Number, b: Number) callconv(.Inline) Number {
             return if (number_is_float)
                 return a / b
@@ -195,7 +197,6 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 pub fn dot(a: Vec, b: anytype) Number {
                     var result: Number = 0;
                     inline for (type_fields(Vec)) |field, i| {
-                        // result += @field(a, field.name) * @field(b, field.name);
                         result += @field(a, field.name) * comptime switch (GetVecArithRhsInfo(@TypeOf(b))) {
                             .struct_field => @field(b, type_fields(@TypeOf(b))[i].name),
                             .array => b[i],
@@ -288,11 +289,8 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             };
         }
 
-        pub const Vec2 = struct {
-            x: Number,
-            y: Number,
-
-            usingnamespace VectorMixin(Vec2);
+        const Vec2Mixin = struct {
+            pub usingnamespace VectorMixin(Vec2);
 
             pub const zero = Vec2.new(0, 0);
             pub const one = Vec2.new(1, 1);
@@ -316,16 +314,29 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             }
 
             pub fn format(self: Vec2, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
+                _ = fmt;
+                _ = options;
                 try stream.print("Vec2({d:.2}, {d:.2})", .{ self.x, self.y });
             }
         };
 
-        pub const Vec3 = struct {
-            x: Number,
-            y: Number,
-            z: Number,
+        pub const Vec2 = if (settings.extern_types)
+            extern struct {
+                x: Number,
+                y: Number,
 
-            usingnamespace VectorMixin(Vec3);
+                usingnamespace Vec2Mixin;
+            }
+        else
+            struct {
+                x: Number,
+                y: Number,
+
+                usingnamespace Vec2Mixin;
+            };
+
+        pub const Vec3Mixin = struct {
+            pub usingnamespace VectorMixin(Vec3);
 
             pub const zero = Vec3.new(0, 0, 0);
             pub const one = Vec3.new(1, 1, 1);
@@ -356,8 +367,8 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             pub usingnamespace if (number_is_float)
                 struct {
                     /// return `self` rotated by `quat`
-                    pub fn rotated(self: Vec3, quat: Quaternion) Vec3 {
-                        return quat.rotateVector(self);
+                    pub fn rotated(self: Vec3, quaternion: Quaternion) Vec3 {
+                        return quaternion.rotateVector(self);
                     }
                 }
             else
@@ -372,17 +383,31 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             }
 
             pub fn format(self: Vec3, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
+                _ = fmt;
+                _ = options;
                 try stream.print("Vec3({d:.2}, {d:.2}, {d:.2})", .{ self.x, self.y, self.z });
             }
         };
 
-        pub const Vec4 = struct {
-            x: Number,
-            y: Number,
-            z: Number,
-            w: Number,
+        pub const Vec3 = if (settings.extern_types)
+            extern struct {
+                x: Number,
+                y: Number,
+                z: Number,
 
-            usingnamespace VectorMixin(Vec4);
+                usingnamespace Vec3Mixin;
+            }
+        else
+            struct {
+                x: Number,
+                y: Number,
+                z: Number,
+
+                usingnamespace Vec3Mixin;
+            };
+
+        pub const Vec4Mixin = struct {
+            pub usingnamespace VectorMixin(Vec4);
 
             pub const zero = Vec4.new(0, 0, 0, 0);
             pub const one = Vec4.new(1, 1, 1, 1);
@@ -412,9 +437,30 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             }
 
             pub fn format(self: Vec4, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
+                _ = fmt;
+                _ = options;
                 try stream.print("Vec4({d:.2}, {d:.2}, {d:.2}, {d:.2})", .{ self.x, self.y, self.z, self.w });
             }
         };
+
+        pub const Vec4 = if (settings.extern_types)
+            extern struct {
+                x: Number,
+                y: Number,
+                z: Number,
+                w: Number,
+
+                usingnamespace Vec4Mixin;
+            }
+        else
+            struct {
+                x: Number,
+                y: Number,
+                z: Number,
+                w: Number,
+
+                usingnamespace Vec4Mixin;
+            };
 
         pub fn vec2(x: Number, y: Number) Vec2 {
             return Vec2.new(x, y);
@@ -434,12 +480,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                     return Quaternion.new(s, x, y, z);
                 }
 
-                pub const Quaternion = struct {
-                    s: Number,
-                    x: Number,
-                    y: Number,
-                    z: Number,
-
+                pub const QuaternionMixin = struct {
                     pub const zero = quat(0, 0, 0, 0);
                     pub const identity = quat(1, 0, 0, 0);
 
@@ -453,6 +494,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                     pub const normalized = VectorMixin(Quaternion).normalized;
                     pub const angleTo = VectorMixin(Quaternion).angleTo;
                     pub const lerp = VectorMixin(Quaternion).lerp;
+                    pub const negative = VectorMixin(Quaternion).negative;
                     pub const equals = VectorMixin(Quaternion).equals;
 
                     pub fn mul(a: Quaternion, b: Quaternion) Quaternion {
@@ -487,7 +529,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
 
                     pub fn lerpShortestPath(a: Quaternion, b: Quaternion, t: Number) Quaternion {
                         if (a.dot(b) < 0)
-                            return a.lerp(-b, t)
+                            return a.lerp(b.negative(), t)
                         else
                             return a.lerp(b, t);
                     }
@@ -497,15 +539,15 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                         const qa = if (settings.auto_normalize_quaternions) a.normalized() else a;
                         const qb = if (settings.auto_normalize_quaternions) b.normalized() else b;
 
-                        var dot = qa.dot(qb);
+                        var dp = qa.dot(qb);
 
-                        // if quaternions are similar enough, fall back to lerp (shortest path)
+                        // if quaternions are similar enough, fall back to lerp
                         // apparently this can cause shaking at the ends of long bone chains?
-                        if (dot > 1 - epsilon) {
+                        if (dp > 1 - epsilon) {
                             return qa.lerpShortestPath(qb, t);
                         }
 
-                        const theta = std.math.acos(dot);
+                        const theta = std.math.acos(dp);
                         return qa
                             .scale(@sin(theta * (1 - t)))
                             .add(qb.scale(theta * t))
@@ -517,20 +559,20 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                         const qa = if (settings.auto_normalize_quaternions) a.normalized() else a;
                         var qb = if (settings.auto_normalize_quaternions) b.normalized() else b;
 
-                        var dot = qa.dot(qb);
+                        var dp = qa.dot(qb);
                         // take shortest path
-                        if (dot < 0) {
+                        if (dp < 0) {
                             qb = qb.negative();
-                            dot = -dot;
+                            dp = -dp;
                         }
 
                         // if quaternions are similar enough, fall back to lerp
                         // apparently this can cause shaking at the ends of long bone chains?
-                        if (dot > 1 - epsilon) {
+                        if (dp > 1 - epsilon) {
                             return qa.lerp(qb, t);
                         }
 
-                        const theta = std.math.acos(dot);
+                        const theta = std.math.acos(dp);
                         return qa
                             .scale(@sin(theta * (1 - t)))
                             .add(qb.scale(theta * t))
@@ -607,20 +649,38 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                     }
 
                     pub fn format(self: Quaternion, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
+                        _ = fmt;
+                        _ = options;
                         try stream.print("quat({d:.2}, {d:.2}i, {d:.2}j, {d:.2}k)", .{ self.s, self.x, self.y, self.z });
                     }
                 };
+
+                pub const Quaternion = if (settings.extern_types)
+                    extern struct {
+                        s: Number,
+                        x: Number,
+                        y: Number,
+                        z: Number,
+
+                        usingnamespace QuaternionMixin;
+                    }
+                else
+                    struct {
+                        s: Number,
+                        x: Number,
+                        y: Number,
+                        z: Number,
+
+                        usingnamespace QuaternionMixin;
+                    };
             }
         else
             struct {};
 
-        pub fn Matrix(comptime rows: usize, comptime columns: usize) type {
-            if (rows == 0 or columns == 0)
-                @compileError("Matrix rows and columns must both be at least 1!");
-            return struct {
-                fields: [rows][columns]Number,
 
-                const Self = @This();
+        fn MatrixMixin(comptime rows: usize, comptime columns: usize) type {
+            return struct {
+                const Self = Matrix(rows, columns);
 
                 pub const row_len = rows;
                 pub const col_len = columns;
@@ -630,7 +690,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 };
                 pub usingnamespace if (rows == columns)
                     struct {
-                        pub const identity = comptime mat: {
+                        pub const identity = mat: {
                             var matrix = zero;
                             @setEvalBranchQuota(10000);
                             for (matrix.fields) |*row, y| {
@@ -646,7 +706,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 else
                     struct {};
 
-                usingnamespace if (rows == 4 and columns == 4)
+                pub usingnamespace if (rows == 4 and columns == 4)
                     Mat4x4Mixin
                 else
                     struct {};
@@ -718,7 +778,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 /// `b` can be a 1d array (len == rows), a 2d array, or a struct (field count == rows)
                 pub fn mul(a: Self, b: anytype) @TypeOf(b) {
                     const BType = @TypeOf(b);
-                    comptime const rhs_info = GetMatRhsInfo(BType);
+                    const rhs_info = comptime GetMatRhsInfo(BType);
                     if (columns != rhs_info.rows) {
                         switch (result.access) {
                             .matrix => @compileError("Number of columns in matrix a must equal number of rows in matrix b!"),
@@ -755,7 +815,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 }
 
                 pub fn equals(a: Self, b: anytype) bool {
-                    comptime const rhs_info = GetMatRhsInfo(@TypeOf(b));
+                    const rhs_info = comptime GetMatRhsInfo(@TypeOf(b));
                     if (columns != rhs_info.cols or rows != rhs_info.rows) {
                         @compileError("Number of columns and rows must be the same between `a` and `b`!");
                     }
@@ -783,6 +843,8 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 }
 
                 pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
+                    _ = fmt;
+                    _ = options;
                     try stream.print("Mat{d}x{d}{{\n", .{ rows, columns });
 
                     // zig fmt: off
@@ -797,6 +859,24 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                     try stream.writeAll("}");
                 }
             };
+        }
+
+        pub fn Matrix(comptime rows: usize, comptime columns: usize) type {
+            if (rows == 0 or columns == 0)
+                @compileError("Matrix rows and columns must both be at least 1!");
+
+            return if (settings.extern_types)
+                extern struct {
+                    fields: [rows][columns]Number,
+
+                    usingnamespace MatrixMixin(rows, columns);
+                }
+            else
+                struct {
+                    fields: [rows][columns]Number,
+
+                    usingnamespace MatrixMixin(rows, columns);
+                };
         }
 
         pub const Mat4x4 = Matrix(4, 4);
@@ -837,8 +917,8 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 return createScaleXYZ(v.x, v.y, v.z);
             }
 
-            pub fn createUniformScale(scale: Number) Mat4x4 {
-                return createScaleXYZ(scale, scale, scale);
+            pub fn createUniformScale(s: Number) Mat4x4 {
+                return createScaleXYZ(s, s, s);
             }
 
             pub fn createAxisAngle(axis: Vec3, angle: Number) Mat4x4 {
@@ -896,7 +976,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 std.debug.assert(@fabs(aspect) > epsilon);
                 std.debug.assert(!std.math.approxEqAbs(Number, near, far, epsilon));
 
-                const tan_half_fov = std.math.tan(fov / 2);
+                const tan_half_fov = std.math.tan(_fov / 2);
 
                 var result = Mat4x4.zero;
                 result.fields[0][0] = 1.0 / (aspect * tan_half_fov);
