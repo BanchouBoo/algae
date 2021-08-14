@@ -313,6 +313,14 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 };
             }
 
+            pub fn perpendicularClockwise(self: Vec2) Vec2 {
+                return Vec2.new(self.y, -self.x);
+            }
+
+            pub fn perpendicularCounterClockwise(self: Vec2) Vec2 {
+                return Vec2.new(-self.y, self.x);
+            }
+
             pub fn format(self: Vec2, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
                 _ = fmt;
                 _ = options;
