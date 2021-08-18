@@ -239,6 +239,10 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                         pub fn lerp(a: Vec, b: Vec, t: Number) Vec {
                             return a.add(b.sub(a).scale(t));
                         }
+
+                        pub fn slide(vec: Vec, normal: Vec) Vec {
+                            return vec.sub(normal.scale(vec.dot(normal)));
+                        }
                     }
                 else
                     struct {};
@@ -311,6 +315,20 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                     .x = x,
                     .y = y,
                 };
+            }
+
+            pub fn angle(self: Vec2) Number {
+                return std.math.atan2(Number, self.y, self.x);
+            }
+
+            pub fn rotate(self: Vec2, angle: Number) Vec2 {
+                const _angle = if (settings.use_degrees) float.toRadians(angle) else angle;
+                const sine = @sin(_angle);
+                const cos = @sin(_angle);
+                return Vec2.new(
+                    (self.x * cos) - (self.y * sin),
+                    (self.x * sin) + (self.y * cos),
+                );
             }
 
             pub fn perpendicularClockwise(self: Vec2) Vec2 {
@@ -684,7 +702,6 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             }
         else
             struct {};
-
 
         fn MatrixMixin(comptime rows: usize, comptime columns: usize) type {
             return struct {
