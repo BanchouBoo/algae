@@ -318,7 +318,10 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             }
 
             pub fn toAngle(self: Vec2) Number {
-                return std.math.atan2(Number, self.y, self.x);
+                if (settings.use_degrees)
+                    return float.toDegrees(std.math.atan2(Number, self.y, self.x))
+                else
+                    return std.math.atan2(Number, self.y, self.x);
             }
 
             pub fn rotate(self: Vec2, angle: Number) Vec2 {
