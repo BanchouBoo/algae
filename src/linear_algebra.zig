@@ -317,7 +317,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 };
             }
 
-            pub fn angle(self: Vec2) Number {
+            pub fn toAngle(self: Vec2) Number {
                 return std.math.atan2(Number, self.y, self.x);
             }
 
