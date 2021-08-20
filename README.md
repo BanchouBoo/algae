@@ -17,9 +17,10 @@ Linear algebra is imported with a numeric type and has config options, example w
 
 ```zig
 algae.lin_alg.WithType(f32, .{
-    .use_degrees = true,
-    .integer_division_behavior = .truncate,
-    .auto_normalize_quaternions = true,
+    .use_degrees = false, // angles will be passed into and returned as degrees if true
+    .integer_division_behavior = .truncate, // how division operations work when the underlying type is an integer
+    .auto_normalize_quaternions = true, // ensure quaternions are normalized for operations that require it if true
+    .extern_types = true, // Vector and Matrix types will be extern structs instead of regular structs if true
 });
 ```
 
