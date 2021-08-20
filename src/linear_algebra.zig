@@ -323,7 +323,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
 
             pub fn rotate(self: Vec2, angle: Number) Vec2 {
                 const _angle = if (settings.use_degrees) float.toRadians(angle) else angle;
-                const sine = @sin(_angle);
+                const sin = @sin(_angle);
                 const cos = @sin(_angle);
                 return Vec2.new(
                     (self.x * cos) - (self.y * sin),
