@@ -20,3 +20,22 @@ pub fn lerp(a: anytype, b: @TypeOf(a), t: @TypeOf(a)) @TypeOf(a) {
     assertIsFloat(@TypeOf(a));
     return a + ((b - a) * t);
 }
+
+fn pow(a: anytype, b: @TypeOf(t)) @TypeOf(a) {
+    return std.math.pow(@TypeOf(a), a, b);
+}
+
+pub fn easeStart(t: anytype, power_of: @TypeOf(t)) @TypeOf(t) {
+    comptime assertIsFloat(@TypeOf(t));
+    return pow(t, power_of);
+}
+
+pub fn easeEnd(t: anytype, power_of: @TypeOf(t)) @TypeOf(t) {
+    comptime assertIsFloat(@TypeOf(t));
+    return 1 - easeStart(1 - t, power_of);
+}
+
+pub fn easeStartEnd(t: anytype, power_of: @TypeOf(t)) @TypeOf(t) {
+    comptime assertIsFloat(@TypeOf(t));
+    return lerp(easeStart(t, power_of), easeEnd(t, power_of), t);
+}
