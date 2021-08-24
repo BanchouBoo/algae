@@ -841,7 +841,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                     return result;
                 }
 
-                // return matrix with rows and columns swapped
+                /// return matrix with rows and columns swapped
                 pub fn transpose(self: Self) Matrix(col_len, row_len) {
                     var result: Self = undefined;
                     for (result.fields) |*row, x| {
