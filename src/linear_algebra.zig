@@ -396,7 +396,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             pub usingnamespace if (number_is_float)
                 struct {
                     /// return `self` rotated by `quat`
-                    pub fn rotated(self: Vec3, quaternion: Quaternion) Vec3 {
+                    pub fn rotate(self: Vec3, quaternion: Quaternion) Vec3 {
                         return quaternion.rotateVector(self);
                     }
                 }
