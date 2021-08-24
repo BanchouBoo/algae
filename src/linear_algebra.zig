@@ -746,19 +746,19 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 }
 
                 const MatrixRhsInfo = struct {
-                    rows: usize = 0,
-                    cols: usize = 0,
+                    rows: usize,
+                    cols: usize,
                     access: enum {
                         matrix,
                         array_1d,
                         array_2d,
                         struct_field,
-                    } = .matrix,
+                    },
                 };
 
                 fn GetMatRhsInfo(comptime T: type) MatrixRhsInfo {
-                    comptime var result = MatrixRhsInfo{};
-                    switch (@typeInfo(T)) {
+                    comptime var result: MatrixRhsInfo = undefined;
+                    comptime switch (@typeInfo(T)) {
                         .Array => |a| {
                             result.rows = a.len;
                             result.access = .array_1d;
@@ -772,9 +772,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                                         else => @compileError("Invalid array type for matrix rhs!"),
                                     }
                                 },
-                                .Int, .Float => {
-                                    result.cols = 1;
-                                },
+                                .Int, .Float => result.cols = 1,
                                 else => @compileError("Invalid array type for matrix rhs!"),
                             }
                         },
@@ -796,7 +794,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                             }
                         },
                         else => @compileError("Invalid type for matrix rhs!"),
-                    }
+                    };
 
                     return result;
                 }
@@ -806,14 +804,15 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 /// `b` can be a 1d array (len == rows), a 2d array, or a struct (field count == rows)
                 pub fn mul(a: Self, b: anytype) @TypeOf(b) {
                     const BType = @TypeOf(b);
+
                     const rhs_info = comptime GetMatRhsInfo(BType);
                     if (columns != rhs_info.rows) {
-                        switch (result.access) {
+                        comptime switch (rhs_info.access) {
                             .matrix => @compileError("Number of columns in matrix a must equal number of rows in matrix b!"),
                             .array_1d => @compileError("Number of columns in matrix a must equal length of array b!"),
                             .array_2d => @compileError("Number of columns in matrix a must equal number of rows of array b!"),
                             .struct_field => @compileError("Number of columns in matrix a must equal number of fields in struct b!"),
-                        }
+                        };
                     }
 
                     var result: BType = undefined;
@@ -825,9 +824,9 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                             {comptime var i = 0; inline while (i < Self.col_len) : (i += 1) {
                                 switch (rhs_info.access) {
                                     .matrix => sum += a.fields[row][i] * b.fields[i][col],
-                                    .array_1d => sum += a.fields[row][i] * b[i],
+                                    .array_1d => sum += a.fields[i][row] * b[i],
                                     .array_2d => sum += a.fields[row][i] * b[i][col],
-                                    .struct_field => sum += a.fields[row][i] * @field(b, type_fields(BType)[i].name),
+                                    .struct_field => sum += a.fields[i][row] * @field(b, type_fields(BType)[i].name),
                                 }
                             }}
                             switch (rhs_info.access) {
@@ -839,6 +838,17 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                         }}
                     }}
                     // zig fmt: on
+                    return result;
+                }
+
+                // return matrix with rows and columns swapped
+                pub fn transpose(self: Self) Matrix(col_len, row_len) {
+                    var result: Self = undefined;
+                    for (result.fields) |*row, x| {
+                        for (row) |*cell, y| {
+                            cell.* = self.fields[y][x];
+                        }
+                    }
                     return result;
                 }
 
