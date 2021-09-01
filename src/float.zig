@@ -108,3 +108,5 @@ pub fn easeStartEndBack(t: anytype, overshoot: @TypeOf(t)) @TypeOf(t) {
         return 0.5 * (_t * _t * ((o + 1) * _t + o) + 2.0);
     }
 }
+
+// TODO: add tests

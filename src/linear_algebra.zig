@@ -226,6 +226,33 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                             return result;
                         }
 
+                        /// ensure length of `self` is no less than `min`
+                        pub fn clampMin(self: Vec, min: Number) Vec {
+                            return if (self.lengthSq() < min * min)
+                                self.normalized().scale(min)
+                            else
+                                self;
+                        }
+
+                        /// ensure length of `self` is no greater than `min`
+                        pub fn clampMax(self: Vec, max: Number) Vec {
+                            return if (self.lengthSq() > max * max)
+                                self.normalized().scale(max)
+                            else
+                                self;
+                        }
+
+                        /// ensure length of `self` is no less than `min` or greater than `max`
+                        pub fn clamp(self: Vec, min: Number, max: Number) Vec {
+                            const length_sq = self.lengthSq();
+                            return if (length_sq < min * min)
+                                self.normalized().scale(min)
+                            else if (length_sq > max * max)
+                                self.normalized().scale(max)
+                            else
+                                self;
+                        }
+
                         /// returns the angle between `a` and `b`
                         pub fn angleTo(a: Vec, b: Vec) Number {
                             var angle = std.math.acos(divide(a.dot(b), a.length() * b.length()));
@@ -1027,6 +1054,8 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
         };
     };
 }
+
+// TODO: add a lot more tests
 
 test "vec2 arithmetic" {
     const expect = std.testing.expect;
