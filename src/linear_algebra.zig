@@ -44,6 +44,8 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
     }.execute;
 
     return struct {
+        const Alg = @This();
+
         fn VectorMixin(comptime Vec: type) type {
             return struct {
                 const VecRhsInfo = enum {
@@ -423,7 +425,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             pub usingnamespace if (number_is_float)
                 struct {
                     /// return `self` rotated by `quat`
-                    pub fn rotate(self: Vec3, quaternion: Quaternion) Vec3 {
+                    pub fn rotate(self: Vec3, quaternion: Alg.Quaternion) Vec3 {
                         return quaternion.rotateVector(self);
                     }
                 }
@@ -954,7 +956,7 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 return self.mul(createScale(v));
             }
 
-            pub fn rotate(self: Mat4x4, q: Quaternion) Mat4x4 {
+            pub fn rotate(self: Mat4x4, q: Alg.Quaternion) Mat4x4 {
                 return self.mul(createRotation(q));
             }
 
@@ -987,10 +989,10 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
             }
 
             pub fn createAxisAngle(axis: Vec3, angle: Number) Mat4x4 {
-                return createRotation(Quaternion.fromAxisAngle(axis, angle));
+                return createRotation(Alg.Quaternion.fromAxisAngle(axis, angle));
             }
 
-            pub fn createRotation(q: Quaternion) Mat4x4 {
+            pub fn createRotation(q: Alg.Quaternion) Mat4x4 {
                 const x2 = q.x * q.x;
                 const y2 = q.y * q.y;
                 const z2 = q.z * q.z;
