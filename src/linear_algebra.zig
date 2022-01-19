@@ -494,6 +494,59 @@ pub fn WithType(comptime Number: type, comptime settings: LinearAlgebraConfig) t
                 };
             }
 
+            pub fn fromU24(value: u24) Vec4 {
+                return fromRgbBytes(.{
+                    @truncate(u8, value >> 16),
+                    @truncate(u8, value >> 8),
+                    @truncate(u8, value),
+                });
+            }
+
+            pub fn fromU32(value: u32) Vec4 {
+                return fromRgbaBytes(.{
+                    @truncate(u8, value >> 24),
+                    @truncate(u8, value >> 16),
+                    @truncate(u8, value >> 8),
+                    @truncate(u8, value),
+                });
+            }
+
+            pub fn fromRgbBytes(rgb: [3]u8) Vec4 {
+                if (number_is_float) {
+                    return vec4(
+                        @intToFloat(Number, rgb[0]) / 255.0,
+                        @intToFloat(Number, rgb[1]) / 255.0,
+                        @intToFloat(Number, rgb[2]) / 255.0,
+                        1.0,
+                    );
+                } else {
+                    return vec4(
+                        rgb[0],
+                        rgb[1],
+                        rgb[2],
+                        1.0,
+                    );
+                }
+            }
+
+            pub fn fromRgbaBytes(rgba: [4]u8) Vec4 {
+                if (number_is_float) {
+                    return vec4(
+                        @intToFloat(Number, rgba[0]) / 255.0,
+                        @intToFloat(Number, rgba[1]) / 255.0,
+                        @intToFloat(Number, rgba[2]) / 255.0,
+                        @intToFloat(Number, rgba[3]) / 255.0,
+                    );
+                } else {
+                    return vec4(
+                        rgba[0],
+                        rgba[1],
+                        rgba[2],
+                        rgba[3],
+                    );
+                }
+            }
+
             pub fn format(self: Vec4, comptime fmt: []const u8, options: std.fmt.FormatOptions, stream: anytype) !void {
                 _ = fmt;
                 _ = options;
